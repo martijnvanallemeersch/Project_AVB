@@ -28,7 +28,6 @@ public class Problem {
     private final List<Slot> slots;
     private final int safetyDistance;
     private final int pickupPlaceDuration;
-    private List<Integer> heightList;
 
     //We maken een 2D Array aan voor alle bodem slots (z=0)
     private HashMap<Integer, HashMap<Integer, Slot>> grondSlots = new HashMap<>();
@@ -316,47 +315,43 @@ public class Problem {
     }
 
     // hier wordt de parent child link gemaakt dus alle grondsloten met hun ouders dus setparent en setchild van ieder slot
-    // maak links van alle sloten die al in storage staan
-    private void MakeParentChildLink() {
+    private void MakeParentChildLink(Slot slot) {
 
-        //Hier wordt de hoogte van elke rij opgeslagen
-        heightList = new ArrayList<>();
+        Slot child = grondSlots.get(slot.getCenterY() / 10).get(slot.getCenterX() / 10);
 
-        for(Slot slot: slots) {
-            int slotCenterY = slot.getCenterY() / 10;
-            int slotCenterX = slot.getCenterX() / 10;
-
-            // Als de Z gelijk is aan nul weten we dat het slot zich op de grond bevindt
-            if (slot.getZ() == 0) {
-                //initialisatie (if grondslot get(slotcenterY) geen value heeft maak een value new Hashmap)
-                grondSlots.computeIfAbsent(slotCenterY, s -> new HashMap<>());
-
-                //Er zijn ook input en output slots dus enkel bij storage
-                if (slot.getType().equals(Slot.SlotType.STORAGE)) {
-                    grondSlots.get(slotCenterY).put(slotCenterX, slot);
-
-                }
-            } else {
-                Slot child = grondSlots.get(slotCenterY).get(slotCenterX);
-                // we stijgen telkens tot op de hoogste z
-                for (int i = 1; i < slot.getZ(); i++) {
-                    child = child.getParent();
-                }
-                //Als we de child gevonden hebben zetten we de link
-                slot.setChild(child);
-                child.setParent(slot);
-            }
-
-            //Wanneer het slot gevuld is in een hashmap steken
-            if (slot.getItem() != null)
-                itemSlotLocation.put(slot.getItem().getId(), slot);
+        // we stijgen telkens tot op de hoogste z
+        while(child.getParent() != null)
+        {
+            child = child.getParent();
         }
+
+        //Als we de child gevonden hebben zetten we de link
+        child.setParent(slot);
+        slot.setChild(child);
     }
 
     // Eerst proberen we outputjobs uit te voeren tot deze bepaalde items nodig heeft die nog niet in het veld staan,
     // dan schakelen we over op inputjobs tot dat item voor de outputjob gevonden is
     public List<ItemMovement> werkUit() {
-        MakeParentChildLink();
+
+        // Alle grondslots enzo verzamellen
+        for(Slot slot: slots) {
+
+            // Als de Z gelijk is aan nul weten we dat het slot zich op de grond bevindt
+            if (slot.getZ() == 0) {
+                //initialisatie (if grondslot get(slotcenterY) geen value heeft maak een value new Hashmap)
+                grondSlots.computeIfAbsent(slot.getCenterY() / 10, s -> new HashMap<>());
+                //Er zijn ook input en output slots dus enkel bij storage
+                if (slot.getType().equals(Slot.SlotType.STORAGE))  grondSlots.get(slot.getCenterY() / 10).put(slot.getCenterX() / 10, slot);
+            }
+            else
+            {
+                MakeParentChildLink(slot);
+            }
+
+            //Wanneer het slot gevuld is in een hashmap steken
+            if (slot.getItem() != null) itemSlotLocation.put(slot.getItem().getId(), slot);
+        }
 
         List<ItemMovement> itemMovements = new ArrayList<>();
         int inputJobCounter = 0;
@@ -440,7 +435,6 @@ public class Problem {
         switch (operatie) {
             case VerplaatsIntern:
                 destination.setItem(startSlot.getItem());
-                startSlot.setItem(null);
                 itemSlotLocation.put(destination.getItem().getId(), destination);
                 break;
             case VerplaatsNaarBinnen:
@@ -449,9 +443,10 @@ public class Problem {
                 break;
             case VerplaatsNaarOutput:
                 itemSlotLocation.remove(startSlot.getItem().getId());
-                startSlot.setItem(null);
                 break;
         }
+
+        startSlot.setItem(null);
     }
 
 
