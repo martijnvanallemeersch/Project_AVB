@@ -35,11 +35,6 @@ public class Problem {
     //We vullen de array met nieuwe arrays
     private HashMap<Integer, Slot> itemSlotLocation = new HashMap<>();
 
-    public enum Richting {
-        NaarVoor,
-        NaarAchter
-    }
-
     public enum Operatie {
         VerplaatsIntern,
         VerplaatsNaarOutput,
@@ -384,7 +379,6 @@ public class Problem {
                 //De verplaatsingen nodig om de outputjob te vervolledigen en alle sloten updaten met hun huidige items
                 itemMovements.addAll(GeneralMeasures.doMoves(pickupPlaceDuration, gantries.get(0), slot, outputJob.getPlace().getSlot()));
                 update(Operatie.VerplaatsNaarOutput, outputJob.getPlace().getSlot(),slot);
-
             }
             else {
                 //AANGEPAST
@@ -461,47 +455,22 @@ public class Problem {
     }
 
 
-
     //Deze functie graaft een bepaald slot dat we nodig hebben uit en verplaatst al de bovenliggende sloten.
     private List<ItemMovement> uitGraven(Slot slot, Gantry gantry){
 
         List<ItemMovement> itemMovements = new ArrayList<>();
-        Richting richting = Richting.NaarVoor;
 
         //Recursief naar boven gaan, doordat we namelijk eerste de gevulde parents van een bepaald slot moeten uithalen
         if(slot.getParent() != null ){
-            if( slot.getParent().getItem() != null) itemMovements.addAll(uitGraven(slot.getParent(), gantry));
+            if( slot.getParent().getItem() != null)
+            {
+                List<ItemMovement> tussen =  uitGraven(slot.getParent(), gantry);
+                itemMovements.addAll(tussen);
+            }
         }
 
         //Slot in een zo dicht mogelijke rij zoeken
-        boolean newSlotFound = false;
-        Slot newSlot = null;
-        int offset = 1;
-        do { //TODO: als storage vol zit en NaarVoor en NaarAchter vinden geen vrije plaats => inf loop
-            // bij het NaarAchter lopen uw index telkens het negatieve deel nemen, dus deze wordt telkens groter negatief.
-            //AANPASSING
-            Integer locatie = richting==Richting.NaarVoor ? (slot.getCenterY() / 10) + offset : (slot.getCenterY() / 10) - offset;
-            //we overlopen eerst alle richtingen NaarVoor wanneer deze op zen einde komt en er geen plaats meer is van richting veranderen naar achter
-            // index terug op 1 zetten omdat de indexen ervoor al gecontroleerd waren
-            if (grondSlots.get(locatie) == null) {
-                //Grootte resetten en richting omdraaien
-                offset = 1;
-                richting = Richting.NaarAchter;
-                continue;
-            }
-
-            //begin bij onderste rij
-            newSlot = GeneralMeasures.zoekLeegSlot(new HashSet<>(grondSlots.get(locatie).values()));
-
-            //telkens één slot verder gaan
-            offset += 1;
-
-            if(newSlot != null){
-                newSlotFound = true;
-            }
-
-        }while(!newSlotFound);
-        // vanaf er een nieuw vrij slot gevonden is deze functie verlaten
+        Slot newSlot = GeneralMeasures.zoekSlot(slot,grondSlots);
 
         //verplaatsen
         itemMovements.addAll(GeneralMeasures.doMoves(pickupPlaceDuration,gantry, slot, newSlot));
@@ -509,6 +478,4 @@ public class Problem {
 
         return itemMovements;
     }
-
-
 }
