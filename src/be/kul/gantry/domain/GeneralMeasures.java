@@ -11,16 +11,18 @@ public abstract class GeneralMeasures {
 
     public static List<ItemMovement> doMoves(double pickupPlaceDuration, Gantry gantry, Slot start , Slot destination){
 
+        ItemMovement moveToPickUpPlace = new ItemMovement(0, start.getCenterX(), start.getCenterY(), null,gantry);
+        ItemMovement movePickUp = new ItemMovement(pickupPlaceDuration, gantry.getX(), gantry.getY(), start.getItem().getId(), gantry);
+        ItemMovement moveToDestination = new ItemMovement(0, destination.getCenterX(), destination.getCenterY(), start.getItem().getId(), gantry);
+        ItemMovement moveDropOnDestination = new ItemMovement(pickupPlaceDuration, gantry.getX(), gantry.getY(), null, gantry);
+
         //De tijd wordt in ItemMovement zelf berekend
         List<ItemMovement> movements = new ArrayList<>();
+        movements.add(moveToPickUpPlace);
+        movements.add(movePickUp);
+        movements.add(moveToDestination);
+        movements.add(moveDropOnDestination);
 
-        movements.add(new ItemMovement(0, start.getCenterX(), start.getCenterY(), null,gantry));
-        //Item heffen;
-        movements.add(new ItemMovement(pickupPlaceDuration, gantry.getX(), gantry.getY(), start.getItem().getId(), gantry));
-        //Item vervoeren naar destination;
-        movements.add(new ItemMovement(0, destination.getCenterX(), destination.getCenterY(), start.getItem().getId(), gantry));
-        //Item plaatsen op destination;
-        movements.add(new ItemMovement(pickupPlaceDuration, gantry.getX(), gantry.getY(), null, gantry));
 
         return movements;
     }

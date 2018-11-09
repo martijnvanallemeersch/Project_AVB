@@ -31,6 +31,11 @@ public class Problem {
 
     //We maken een 2D Array aan voor alle bodem slots (z=0)
     private HashMap<Integer, HashMap<Integer, Slot>> grondSlots = new HashMap<>();
+    private HashMap<Integer, HashMap<Integer, Slot>> slotsNiveau1 = new HashMap<>();
+    private HashMap<Integer, HashMap<Integer, Slot>> slotsNiveau2 = new HashMap<>();
+    private HashMap<Integer, HashMap<Integer, Slot>> slotsNiveau3 = new HashMap<>();
+
+
     //We vullen de array met nieuwe arrays
     private HashMap<Integer, Slot> itemSlotLocation = new HashMap<>();
 
@@ -250,7 +255,6 @@ public class Problem {
                 Item c = itemId == null ? null : itemList.get(itemId);
 
                 Slot s = new Slot(id,cx,cy,minX,maxX,minY,maxY,z,type,c);
-
                 slotList.add(s);
             }
 
@@ -344,16 +348,43 @@ public class Problem {
                 //Er zijn ook input en output slots dus enkel bij storage
                 if (slot.getType().equals(Slot.SlotType.STORAGE))  grondSlots.get(slot.getCenterY() / 10).put(slot.getCenterX() / 10, slot);
             }
-            else
+            else if(slot.getZ() == 1)
             {
-                MakeParentChildLink(slot);
+                //initialisatie (if grondslot get(slotcenterY) geen value heeft maak een value new Hashmap)
+                slotsNiveau1.computeIfAbsent(slot.getCenterY() / 10, s -> new HashMap<>());
+                //Er zijn ook input en output slots dus enkel bij storage
+                if (slot.getType().equals(Slot.SlotType.STORAGE))  slotsNiveau1.get(slot.getCenterY() / 10).put(slot.getCenterX() / 10, slot);
+
+                //MakeParentChildLink(slot);
             }
+            else if(slot.getZ() == 2)
+            {
+                //initialisatie (if grondslot get(slotcenterY) geen value heeft maak een value new Hashmap)
+                slotsNiveau2.computeIfAbsent(slot.getCenterY() / 10, s -> new HashMap<>());
+                //Er zijn ook input en output slots dus enkel bij storage
+                if (slot.getType().equals(Slot.SlotType.STORAGE))  slotsNiveau2.get(slot.getCenterY() / 10).put(slot.getCenterX() / 10, slot);
+            }
+            else if(slot.getZ() == 3)
+            {
+                //initialisatie (if grondslot get(slotcenterY) geen value heeft maak een value new Hashmap)
+                slotsNiveau3.computeIfAbsent(slot.getCenterY() / 10, s -> new HashMap<>());
+                //Er zijn ook input en output slots dus enkel bij storage
+                if (slot.getType().equals(Slot.SlotType.STORAGE))  slotsNiveau3.get(slot.getCenterY() / 10).put(slot.getCenterX() / 10, slot);
+            }
+
 
             //Wanneer het slot gevuld is in een hashmap steken
             if (slot.getItem() != null) itemSlotLocation.put(slot.getItem().getId(), slot);
         }
 
-        List<ItemMovement> itemMovements = new ArrayList<>();
+        // tweede keer over uw slotten lopen
+        for(Slot slot: slots) {
+            if (slot.getZ() != 0) {
+                MakeParentChildLink(slot);
+            }
+        }
+
+            List<ItemMovement> itemMovements = new ArrayList<>();
         int inputJobCounter = 0;
         int outputJobCounter = 0;
 
