@@ -6,11 +6,13 @@ package be.kul.gantry.domain;
 public class Slot {
 
     private final int id;
-    private final int centerX, centerY, xMin, xMax, yMin, yMax,z;
+    private final int centerX, centerY, xMin, xMax, yMin, yMax, z;
     private Item item;
     private final SlotType type;
-    private Slot parent;
-    private Slot child;
+    private Slot parentL;
+    private Slot parentR;
+    private Slot childL;
+    private Slot childR;
 
     public Slot(int id, int centerX, int centerY, int xMin, int xMax, int yMin, int yMax, int z, SlotType type, Item item) {
         this.id = id;
@@ -75,20 +77,36 @@ public class Slot {
 
     public boolean isStorageSlot() { return type == SlotType.STORAGE; }
 
-    public Slot getParent() {
-        return parent;
+    public Slot getParentL() {
+        return parentL;
     }
 
-    public void setParent(Slot parent) {
-        this.parent = parent;
+    public Slot getParentR() {
+        return parentR;
     }
 
-    public Slot getChild() {
-        return child;
+    public void setParentL(Slot parentL) {
+        this.parentL = parentL;
     }
 
-    public void setChild(Slot child) {
-        this.child = child;
+    public void setParentR(Slot parentR) {
+        this.parentR = parentR;
+    }
+
+    public Slot getChildL() {
+        return childL;
+    }
+
+    public Slot getChildR() {
+        return childR;
+    }
+
+    public void setChildL(Slot childL) {
+        this.childL = childL;
+    }
+
+    public void setChildR(Slot childR) {
+        this.childR = childR;
     }
 
     @Override
