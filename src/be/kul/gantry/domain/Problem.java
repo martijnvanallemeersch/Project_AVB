@@ -28,9 +28,12 @@ public class Problem {
     private final List<Slot> slots;
     private final int safetyDistance;
     private final int pickupPlaceDuration;
+    private HashMap<Integer, HashMap<Integer, Slot>> grondSlots = new HashMap<>();
+    private Boolean geschrankt = false;
+
 
     //We maken een 2D Array aan voor alle bodem slots (z=0)
-    private Map<Integer, HashMap<Integer, HashMap<Integer, Slot>>> niveaus;
+    //private Map<Integer, HashMap<Integer, HashMap<Integer, Slot>>> niveaus;
 
 
     //We vullen de array met nieuwe arrays
@@ -42,7 +45,7 @@ public class Problem {
         VerplaatsNaarBinnen
     }
 
-    public Problem(int minX, int maxX, int minY, int maxY, int maxLevels, List<Item> items, List<Job> inputJobSequence, List<Job> outputJobSequence, List<Gantry> gantries, List<Slot> slots, int safetyDistance, int pickupPlaceDuration) {
+    public Problem(int minX, int maxX, int minY, int maxY, int maxLevels, List<Item> items, List<Job> inputJobSequence, List<Job> outputJobSequence, List<Gantry> gantries, List<Slot> slots, int safetyDistance, int pickupPlaceDuration,boolean geschrankt) {
         this.minX = minX;
         this.maxX = maxX;
         this.minY = minY;
@@ -55,12 +58,13 @@ public class Problem {
         this.slots = slots;
         this.safetyDistance = safetyDistance;
         this.pickupPlaceDuration = pickupPlaceDuration;
+        this.geschrankt = geschrankt;
 
-        niveaus = new HashMap<>();
+        //niveaus = new HashMap<>();
 
-        for(int i = 0; i<4; i++){
-            niveaus.put(i, new HashMap<Integer, HashMap<Integer, Slot>>());
-        }
+//        for(int i = 0; i<4; i++){
+//            niveaus.put(i, new HashMap<Integer, HashMap<Integer, Slot>>());
+//        }
     }
 
     public int getMinX() {
@@ -114,6 +118,8 @@ public class Problem {
     public HashMap<Integer, Slot> getItemSlotLocation() {
         return itemSlotLocation;
     }
+
+
 
     public void setItemSlotLocation(HashMap<Integer, Slot> itemSlotLocation) {
         this.itemSlotLocation = itemSlotLocation;
@@ -205,7 +211,6 @@ public class Problem {
     }
 
     public static Problem fromJson(File file) throws IOException, ParseException {
-
 
         JSONParser parser = new JSONParser();
 
@@ -302,6 +307,12 @@ public class Problem {
                 outputJobList.add(job);
             }
 
+            boolean geschranktIn = false;
+            if(file.getName().contains("TRUE"))
+            {
+                geschranktIn = true;
+            }
+
 
             return new Problem(
                     overallMinX,
@@ -315,38 +326,74 @@ public class Problem {
                     gantryList,
                     slotList,
                     safetyDist,
-                    pickupPlaceDuration
+                    pickupPlaceDuration,
+                    geschranktIn
                     );
+        }
+    }
 
+    private void MakeParentChildLinkNietGeschrankt(Slot slot) {
+        Slot child = grondSlots.get(slot.getCenterY() / 10).get(slot.getCenterX() / 10);
+
+        // we stijgen telkens tot op de hoogste z
+        while(child.getParentL() != null)
+        {
+            child = child.getParentL();
         }
 
+        //Als we de child gevonden hebben zetten we de link
+        child.setParentL(slot);
+        slot.setChildL(child);
     }
 
     // hier wordt de parent child link gemaakt dus alle grondsloten met hun ouders dus setparent en setchild van ieder slot
-    private void MakeParentChildLink(HashMap<Integer, HashMap<Integer, Slot>> sloten) {
+    private void MakeParentChildLinkGeschrankt(Slot slot) {
 
-        HashMap<Integer, HashMap<Integer, Slot>> parentSloten = null;
+        Slot childL = null;
+        Slot childR = null;
 
-        for(HashMap<Integer, Slot> sloth: sloten.values()){
-
-            if(parentSloten == null){
-                HashMap<Integer, Slot> l = sloten.values().iterator().next();
-                int z = l.values().iterator().next().getZ();
-                parentSloten = niveaus.get(z+1);
-            }
-
-            for(Slot s: sloth.values()){
-                int x = s.getCenterX();
-                int newXl = x - 5;
-                int newXr = x + 5;
-                Slot parentL = parentSloten.get(s.getCenterY() / 10).get(newXl / 10);
-                Slot parentR = parentSloten.get(s.getCenterY() / 10).get(newXr / 10);
-                s.setParentL(parentL);
-                s.setParentR(parentR);
-                parentL.setChildR(s);
-                parentR.setChildL(s);
-            }
+        //We hebben een slot op niveau 1 dus de kinderen gewoon zoeken door X-5 & X+5 te doen!
+        if(slot.getZ() == 1)
+        {
+            childL = grondSlots.get((int) slot.getCenterY() / 10).get((int) (slot.getCenterX() - 5) / 10);
+            childR = grondSlots.get((int) slot.getCenterY() / 10).get((int) (slot.getCenterX() + 5) / 10);
         }
+
+                //        niveau 3
+              //  //      niveau 2
+           //   //   //   niveau 1
+        //   //   //   // niveau 0
+
+        //We hebben een slot van niveau twee dus weten dat het grondslot (niveau 0) op dezelfde X coordinaat ligt zie tekening hierboven.
+        // De parents links en rechts zijn van het grondslot zijn dus de kinderen van het slot op niveau 2
+        else if(slot.getZ() == 2)
+        {
+            Slot tussen = grondSlots.get((int) slot.getCenterY()/10).get((int) (slot.getCenterX())/10);
+            childL = tussen.getParentL();
+            childR = tussen.getParentR();
+        }
+
+        //z == 3 (z begint bij 0)
+        //We hebben een slot van niveau drie dus weten dat we 2 grondslotten (niveau 0) hebben dus één Xcoordinaat -5 en één X coordinaat +5
+        // De parents rechts van kind 1 of de parent links van kind 2 zijn ouders links en rechts zijn de kinderen van het slot op niveau 3.
+        else
+        {
+            childL = grondSlots.get((int) slot.getCenterY() / 10).get((int) (slot.getCenterX() - 5) / 10);
+            //child2 = bottomSlots.get((int) slot.getCenterY() / 10).get((int) (slot.getCenterX() + 5) / 10);
+            Slot tussen = childL.getParentR();
+            //Onderstaande lijn kon ook in vervanging van bovenstaande lijn!!
+            //child = child1.getParentL();
+
+            childL = tussen.getParentL();
+            childR = tussen.getParentR();
+        }
+
+        //Een keer we de child gevonden hebben updaten we de relaties;
+
+        slot.setChildL(childL);
+        slot.setChildR(childR);
+        childL.setParentR(slot);
+        childR.setParentL(slot);
     }
 
     // Eerst proberen we outputjobs uit te voeren tot deze bepaalde items nodig heeft die nog niet in het veld staan,
@@ -358,48 +405,71 @@ public class Problem {
 
             // Als de Z gelijk is aan nul weten we dat het slot zich op de grond bevindt
             if (slot.getZ() == 0) {
-                HashMap<Integer, HashMap<Integer, Slot>> niveau0 = niveaus.get(0);
-                //initialisatie (if grondslot get(slotcenterY) geen value heeft maak een value new Hashmap)
-                niveau0.computeIfAbsent(slot.getCenterY() / 10, s -> new HashMap<>());
-                //Er zijn ook input en output slots dus enkel bij storage
-                if (slot.getType().equals(Slot.SlotType.STORAGE))  niveau0.get(slot.getCenterY() / 10).put(slot.getCenterX() / 10, slot);
-            }
-            else if(slot.getZ() == 1)
-            {
-                HashMap<Integer, HashMap<Integer, Slot>> niveau1 = niveaus.get(1);
-                //initialisatie (if grondslot get(slotcenterY) geen value heeft maak een value new Hashmap)
-                niveau1.computeIfAbsent(slot.getCenterY() / 10, s -> new HashMap<>());
-                //Er zijn ook input en output slots dus enkel bij storage
-                if (slot.getType().equals(Slot.SlotType.STORAGE))  niveau1.get(slot.getCenterY() / 10).put(slot.getCenterX() / 10, slot);
 
-                //MakeParentChildLink(slot);
+                //Hashmap in hashmap steken als key nog leeg is
+                grondSlots.putIfAbsent((int) slot.getCenterY() / 10, new HashMap<>());
+                //Enkel toevoegen als het geen input of output slot is;
+                if (!slot.getType().name().equals("INPUT") && !slot.getType().name().equals("OUTPUT")) {
+                    grondSlots.get((int) slot.getCenterY() / 10).put((int) slot.getCenterX() / 10, slot);
+                }
+
+//                HashMap<Integer, HashMap<Integer, Slot>> niveau0 = niveaus.get(0);
+//                //initialisatie (if grondslot get(slotcenterY) geen value heeft maak een value new Hashmap)
+//                niveau0.computeIfAbsent(slot.getCenterY() / 10, s -> new HashMap<>());
+//                //Er zijn ook input en output slots dus enkel bij storage
+//                if (slot.getType().equals(Slot.SlotType.STORAGE))  niveau0.get(slot.getCenterY() / 10).put(slot.getCenterX() / 10, slot);
             }
-            else if(slot.getZ() == 2)
+            else
             {
-                HashMap<Integer, HashMap<Integer, Slot>> niveau2 = niveaus.get(2);
-                //initialisatie (if grondslot get(slotcenterY) geen value heeft maak een value new Hashmap)
-                niveau2.computeIfAbsent(slot.getCenterY() / 10, s -> new HashMap<>());
-                //Er zijn ook input en output slots dus enkel bij storage
-                if (slot.getType().equals(Slot.SlotType.STORAGE))  niveau2.get(slot.getCenterY() / 10).put(slot.getCenterX() / 10, slot);
+                if(geschrankt)
+                {
+                    MakeParentChildLinkGeschrankt(slot);
+                }
+                else
+                {
+                    MakeParentChildLinkNietGeschrankt(slot);
+                }
+
             }
-            else if(slot.getZ() == 3)
-            {
-                HashMap<Integer, HashMap<Integer, Slot>> niveau3 = niveaus.get(3);
-                //initialisatie (if grondslot get(slotcenterY) geen value heeft maak een value new Hashmap)
-                niveau3.computeIfAbsent(slot.getCenterY() / 10, s -> new HashMap<>());
-                //Er zijn ook input en output slots dus enkel bij storage
-                if (slot.getType().equals(Slot.SlotType.STORAGE))  niveau3.get(slot.getCenterY() / 10).put(slot.getCenterX() / 10, slot);
-            }
+
+//            else if(slot.getZ() == 1)
+//            {
+//                HashMap<Integer, HashMap<Integer, Slot>> niveau1 = niveaus.get(1);
+//                //initialisatie (if grondslot get(slotcenterY) geen value heeft maak een value new Hashmap)
+//                niveau1.computeIfAbsent(slot.getCenterY() / 10, s -> new HashMap<>());
+//                //Er zijn ook input en output slots dus enkel bij storage
+//                if (slot.getType().equals(Slot.SlotType.STORAGE))  niveau1.get(slot.getCenterY() / 10).put(slot.getCenterX() / 10, slot);
+//
+//                //MakeParentChildLink(slot);
+//            }
+//            else if(slot.getZ() == 2)
+//            {
+//                HashMap<Integer, HashMap<Integer, Slot>> niveau2 = niveaus.get(2);
+//                //initialisatie (if grondslot get(slotcenterY) geen value heeft maak een value new Hashmap)
+//                niveau2.computeIfAbsent(slot.getCenterY() / 10, s -> new HashMap<>());
+//                //Er zijn ook input en output slots dus enkel bij storage
+//                if (slot.getType().equals(Slot.SlotType.STORAGE))  niveau2.get(slot.getCenterY() / 10).put(slot.getCenterX() / 10, slot);
+//            }
+//            else if(slot.getZ() == 3)
+//            {
+//                HashMap<Integer, HashMap<Integer, Slot>> niveau3 = niveaus.get(3);
+//                //initialisatie (if grondslot get(slotcenterY) geen value heeft maak een value new Hashmap)
+//                niveau3.computeIfAbsent(slot.getCenterY() / 10, s -> new HashMap<>());
+//                //Er zijn ook input en output slots dus enkel bij storage
+//                if (slot.getType().equals(Slot.SlotType.STORAGE))  niveau3.get(slot.getCenterY() / 10).put(slot.getCenterX() / 10, slot);
+//            }
+
 
             //Wanneer het slot gevuld is in een hashmap steken
             if (slot.getItem() != null) itemSlotLocation.put(slot.getItem().getId(), slot);
+
         }
 
-        // tweede keer over uw slotten lopen
-        for(int i = 0; i<3; i++){
-            HashMap<Integer, HashMap<Integer, Slot>> m = niveaus.get(i);
-            MakeParentChildLink(m);
-        }
+//        // tweede keer over uw slotten lopen
+//        for(int i = 0; i<3; i++){
+//            HashMap<Integer, HashMap<Integer, Slot>> m = niveaus.get(i);
+//            MakeParentChildLink(m);
+//        }
 
         List<ItemMovement> itemMovements = new ArrayList<>();
         int inputJobCounter = 0;
@@ -415,13 +485,12 @@ public class Problem {
             //kijken of het in field zit.
             if(slot != null) {
                 //Als het item dat we nodig hebben containers op hem heeft staan eerste deze uitgraven en nieuwe plaats geven
-                if(!(slot.getParentL() == null && slot.getParentR() == null)){
-                    if(slot.getParentL() != null && slot.getParentL().getItem() != null)
-                        itemMovements.addAll(uitGraven(slot.getParentL(), gantries.get(0)));
+                if(slot.getParentL() != null && slot.getParentL().getItem() != null)
+                    itemMovements.addAll(uitGraven(slot.getParentL(), gantries.get(0)));
 
-                    if(slot.getParentR() != null && slot.getParentR().getItem() != null)
-                        itemMovements.addAll(uitGraven(slot.getParentR(), gantries.get(0)));
-                }
+                if(slot.getParentR() != null && slot.getParentR().getItem() != null)
+                    itemMovements.addAll(uitGraven(slot.getParentR(), gantries.get(0)));
+
 
                 //De verplaatsingen nodig om de outputjob te vervolledigen en alle sloten updaten met hun huidige items
                 itemMovements.addAll(GeneralMeasures.doMoves(pickupPlaceDuration, gantries.get(0), slot, outputJob.getPlace().getSlot()));
@@ -473,9 +542,7 @@ public class Problem {
     //mss veiliger om Job mee te geven ipv jobcounter zodat counter niet per ongelijk in methode kan veranderd worden
     private void arrangeInputJob(Job inputJob, List<ItemMovement> itemMovements) {
 
-        //overige inputjobs afwerken
-        //int row = 0;
-        Slot destination = GeneralMeasures.zoekLeegSlot(new HashSet<>(grondSlots.get(0).values()));
+        Slot destination = (Slot) GeneralMeasures.zoekLeegSlot(new ArrayList<>(grondSlots.get(0).values()));
 
         //De verplaatsingen nodig om de outputjob te vervolledigen en alle sloten updaten met hun huidige items
         inputJob.getPickup().getSlot().setItem(inputJob.getItem());
@@ -502,24 +569,24 @@ public class Problem {
     }
 
 
-    //Deze functie graaft een bepaald slot dat we nodig hebben uit en verplaatst al de bovenliggende sloten.
-    private List<ItemMovement> uitGraven(Slot slot, Gantry gantry){
+//    //Deze functie graaft een bepaald slot dat we nodig hebben uit en verplaatst al de bovenliggende sloten.
+   private List<ItemMovement> uitGraven(Slot slot, Gantry gantry){
 
         List<ItemMovement> itemMovements = new ArrayList<>();
 
         //Recursief naar boven gaan, doordat we namelijk eerste de gevulde parents van een bepaald slot moeten uithalen
         // parent Rechts
-        if(slot.getParentR() != null ){
-            if( slot.getParentR().getItem() != null) {
-                List<ItemMovement> tussen =  uitGraven(slot.getParentR(), gantry);
+        if(slot.getParentL() != null ){
+            if( slot.getParentL().getItem() != null) {
+                List<ItemMovement> tussen =  uitGraven(slot.getParentL(), gantry);
                 itemMovements.addAll(tussen);
             }
         }
 
         // parent Links
-        if(slot.getParentL() != null ){
-            if( slot.getParentL().getItem() != null) {
-                List<ItemMovement> tussen =  uitGraven(slot.getParentL(), gantry);
+        if(slot.getParentR() != null ){
+            if(slot.getParentR().getItem() != null) {
+                List<ItemMovement> tussen =  uitGraven(slot.getParentR(), gantry);
                 itemMovements.addAll(tussen);
             }
         }

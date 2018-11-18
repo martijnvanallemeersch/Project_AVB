@@ -1,5 +1,7 @@
 package be.kul.gantry.domain;
 
+import java.util.ArrayList;
+
 /**
  * Created by Wim on 27/04/2015.
  */
@@ -13,6 +15,7 @@ public class Slot {
     private Slot parentR;
     private Slot childL;
     private Slot childR;
+
 
     public Slot(int id, int centerX, int centerY, int xMin, int xMax, int yMin, int yMax, int z, SlotType type, Item item) {
         this.id = id;
