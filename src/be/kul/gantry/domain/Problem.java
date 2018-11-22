@@ -336,8 +336,7 @@ public class Problem {
         Slot child = grondSlots.get(slot.getCenterY() / 10).get(slot.getCenterX() / 10);
 
         // we stijgen telkens tot op de hoogste z
-        while(child.getParentL() != null)
-        {
+        while(child.getParentL() != null) {
             child = child.getParentL();
         }
 
@@ -365,7 +364,7 @@ public class Problem {
         //   //   //   // niveau 0
 
         //We hebben een slot van niveau twee dus weten dat het grondslot (niveau 0) op dezelfde X coordinaat ligt zie tekening hierboven.
-        // De parents links en rechts zijn van het grondslot zijn dus de kinderen van het slot op niveau 2
+        // De parents links en rechts van het grondslot zijn dus de kinderen van het slot op niveau 2
         else if(slot.getZ() == 2)
         {
             Slot tussen = grondSlots.get((int) slot.getCenterY()/10).get((int) (slot.getCenterX())/10);
@@ -375,7 +374,7 @@ public class Problem {
 
         //z == 3 (z begint bij 0)
         //We hebben een slot van niveau drie dus weten dat we 2 grondslotten (niveau 0) hebben dus één Xcoordinaat -5 en één X coordinaat +5
-        // De parents rechts van kind 1 of de parent links van kind 2 zijn ouders links en rechts zijn de kinderen van het slot op niveau 3.
+        // De parents rechts van kind 1 of de parent links van kind 2, zijn ouders links en rechts zijn de kinderen van het slot op niveau 3.
         else
         {
             childL = grondSlots.get((int) slot.getCenterY() / 10).get((int) (slot.getCenterX() - 5) / 10);
@@ -398,78 +397,9 @@ public class Problem {
 
     // Eerst proberen we outputjobs uit te voeren tot deze bepaalde items nodig heeft die nog niet in het veld staan,
     // dan schakelen we over op inputjobs tot dat item voor de outputjob gevonden is
-    public List<ItemMovement> werkUit() {
+    public List<ItemMovement> werkUit() throws GeenPlaatsException {
 
-        // Alle grondslots enzo verzamellen
-        for(Slot slot: slots) {
-
-            // Als de Z gelijk is aan nul weten we dat het slot zich op de grond bevindt
-            if (slot.getZ() == 0) {
-
-                //Hashmap in hashmap steken als key nog leeg is
-                grondSlots.putIfAbsent((int) slot.getCenterY() / 10, new HashMap<>());
-                //Enkel toevoegen als het geen input of output slot is;
-                if (!slot.getType().name().equals("INPUT") && !slot.getType().name().equals("OUTPUT")) {
-                    grondSlots.get((int) slot.getCenterY() / 10).put((int) slot.getCenterX() / 10, slot);
-                }
-
-//                HashMap<Integer, HashMap<Integer, Slot>> niveau0 = niveaus.get(0);
-//                //initialisatie (if grondslot get(slotcenterY) geen value heeft maak een value new Hashmap)
-//                niveau0.computeIfAbsent(slot.getCenterY() / 10, s -> new HashMap<>());
-//                //Er zijn ook input en output slots dus enkel bij storage
-//                if (slot.getType().equals(Slot.SlotType.STORAGE))  niveau0.get(slot.getCenterY() / 10).put(slot.getCenterX() / 10, slot);
-            }
-            else
-            {
-                if(geschrankt)
-                {
-                    MakeParentChildLinkGeschrankt(slot);
-                }
-                else
-                {
-                    MakeParentChildLinkNietGeschrankt(slot);
-                }
-
-            }
-
-//            else if(slot.getZ() == 1)
-//            {
-//                HashMap<Integer, HashMap<Integer, Slot>> niveau1 = niveaus.get(1);
-//                //initialisatie (if grondslot get(slotcenterY) geen value heeft maak een value new Hashmap)
-//                niveau1.computeIfAbsent(slot.getCenterY() / 10, s -> new HashMap<>());
-//                //Er zijn ook input en output slots dus enkel bij storage
-//                if (slot.getType().equals(Slot.SlotType.STORAGE))  niveau1.get(slot.getCenterY() / 10).put(slot.getCenterX() / 10, slot);
-//
-//                //MakeParentChildLink(slot);
-//            }
-//            else if(slot.getZ() == 2)
-//            {
-//                HashMap<Integer, HashMap<Integer, Slot>> niveau2 = niveaus.get(2);
-//                //initialisatie (if grondslot get(slotcenterY) geen value heeft maak een value new Hashmap)
-//                niveau2.computeIfAbsent(slot.getCenterY() / 10, s -> new HashMap<>());
-//                //Er zijn ook input en output slots dus enkel bij storage
-//                if (slot.getType().equals(Slot.SlotType.STORAGE))  niveau2.get(slot.getCenterY() / 10).put(slot.getCenterX() / 10, slot);
-//            }
-//            else if(slot.getZ() == 3)
-//            {
-//                HashMap<Integer, HashMap<Integer, Slot>> niveau3 = niveaus.get(3);
-//                //initialisatie (if grondslot get(slotcenterY) geen value heeft maak een value new Hashmap)
-//                niveau3.computeIfAbsent(slot.getCenterY() / 10, s -> new HashMap<>());
-//                //Er zijn ook input en output slots dus enkel bij storage
-//                if (slot.getType().equals(Slot.SlotType.STORAGE))  niveau3.get(slot.getCenterY() / 10).put(slot.getCenterX() / 10, slot);
-//            }
-
-
-            //Wanneer het slot gevuld is in een hashmap steken
-            if (slot.getItem() != null) itemSlotLocation.put(slot.getItem().getId(), slot);
-
-        }
-
-//        // tweede keer over uw slotten lopen
-//        for(int i = 0; i<3; i++){
-//            HashMap<Integer, HashMap<Integer, Slot>> m = niveaus.get(i);
-//            MakeParentChildLink(m);
-//        }
+        buildTree();
 
         List<ItemMovement> itemMovements = new ArrayList<>();
         int inputJobCounter = 0;
@@ -484,24 +414,24 @@ public class Problem {
 
             //kijken of het in field zit.
             if(slot != null) {
+                //generate blacklist (niet zo efficient)
+                Set<Slot> blacklist = null;
+                if(geschrankt)
+                    blacklist = generateBlacklist(slot);
+
                 //Als het item dat we nodig hebben containers op hem heeft staan eerste deze uitgraven en nieuwe plaats geven
                 if(slot.getParentL() != null && slot.getParentL().getItem() != null)
-                    itemMovements.addAll(uitGraven(slot.getParentL(), gantries.get(0)));
+                    itemMovements.addAll(uitGraven(slot.getParentL(), gantries.get(0), blacklist));
 
                 if(slot.getParentR() != null && slot.getParentR().getItem() != null)
-                    itemMovements.addAll(uitGraven(slot.getParentR(), gantries.get(0)));
-
+                    itemMovements.addAll(uitGraven(slot.getParentR(), gantries.get(0), blacklist));
 
                 //De verplaatsingen nodig om de outputjob te vervolledigen en alle sloten updaten met hun huidige items
                 itemMovements.addAll(GeneralMeasures.doMoves(pickupPlaceDuration, gantries.get(0), slot, outputJob.getPlace().getSlot()));
                 update(Operatie.VerplaatsNaarOutput, outputJob.getPlace().getSlot(),slot);
             }
             else {
-                //AANGEPAST
-                //een nieuw inputjob doen tot het item gevonden is
-                //origineel ontwerp: plaatste het gewenste output item eerst in de storage
-                // om direct daarna hem terug op te nemen voor naar de output te brengen?
-                // dit beweegt direct van input slot naar output slot
+                //een nieuw inputjob doen tot het item gevonden is, als gevonden is => direct naar output
                while(slot == null) {
                     Job inputJob = inputJobSequence.get(inputJobCounter);
 
@@ -538,11 +468,34 @@ public class Problem {
         return itemMovements;
     }
 
-    //inputjob uitvoeren
-    //mss veiliger om Job mee te geven ipv jobcounter zodat counter niet per ongelijk in methode kan veranderd worden
-    private void arrangeInputJob(Job inputJob, List<ItemMovement> itemMovements) {
+    //genereer de sloten die leeg zijn die in de trechter boven par:slot zit
+    private Set<Slot> generateBlacklist(Slot slot){
+        Set<Slot> sloten = new HashSet<>();
 
-        Slot destination = (Slot) GeneralMeasures.zoekLeegSlot(new ArrayList<>(grondSlots.get(0).values()));
+        Slot links = slot.getParentL();
+        if(links != null){
+            sloten.addAll(generateBlacklist(links));
+        }
+
+        Slot rechts = slot.getParentR();
+        if(rechts != null){
+            sloten.addAll(generateBlacklist(rechts));
+        }
+
+        if(links == null && rechts == null)
+            sloten.add(slot);
+
+        return sloten;
+    }
+
+    //inputjob uitvoeren
+    private void arrangeInputJob(Job inputJob, List<ItemMovement> itemMovements) throws GeenPlaatsException {
+
+        //voeg alle grondslots uit om van te vertrekken om lege plaats te zoeken
+        List<Slot> tmp = new ArrayList<>();
+        for(HashMap<Integer, Slot> t: grondSlots.values())
+            tmp.addAll(t.values());
+        Slot destination = GeneralMeasures.zoekLeegSlot(tmp, null);
 
         //De verplaatsingen nodig om de outputjob te vervolledigen en alle sloten updaten met hun huidige items
         inputJob.getPickup().getSlot().setItem(inputJob.getItem());
@@ -569,35 +522,62 @@ public class Problem {
     }
 
 
-//    //Deze functie graaft een bepaald slot dat we nodig hebben uit en verplaatst al de bovenliggende sloten.
-   private List<ItemMovement> uitGraven(Slot slot, Gantry gantry){
+   //Deze functie graaft een bepaald slot dat we nodig hebben uit en verplaatst al de bovenliggende sloten.
+   private List<ItemMovement> uitGraven(Slot slot, Gantry gantry, Set<Slot> blackList) throws GeenPlaatsException {
 
         List<ItemMovement> itemMovements = new ArrayList<>();
 
         //Recursief naar boven gaan, doordat we namelijk eerste de gevulde parents van een bepaald slot moeten uithalen
-        // parent Rechts
+        // parent Links
         if(slot.getParentL() != null ){
             if( slot.getParentL().getItem() != null) {
-                List<ItemMovement> tussen =  uitGraven(slot.getParentL(), gantry);
+                List<ItemMovement> tussen =  uitGraven(slot.getParentL(), gantry, blackList);
                 itemMovements.addAll(tussen);
             }
         }
 
-        // parent Links
+        // parent Rechts
         if(slot.getParentR() != null ){
             if(slot.getParentR().getItem() != null) {
-                List<ItemMovement> tussen =  uitGraven(slot.getParentR(), gantry);
+                List<ItemMovement> tussen =  uitGraven(slot.getParentR(), gantry, blackList);
                 itemMovements.addAll(tussen);
             }
         }
 
         //Slot in een zo dicht mogelijke rij zoeken
-        Slot newSlot = GeneralMeasures.zoekSlot(slot,grondSlots);
+        Slot newSlot = GeneralMeasures.zoekLeegSlotInBuurt(slot, grondSlots, blackList);
 
         //verplaatsen
         itemMovements.addAll(GeneralMeasures.doMoves(pickupPlaceDuration,gantry, slot, newSlot));
         update(Operatie.VerplaatsIntern, newSlot, slot);
 
         return itemMovements;
+    }
+
+    private void buildTree(){
+        // Alle grondslots enzo verzamelen
+        for(Slot slot: slots) {
+            // Als de Z gelijk is aan nul weten we dat het slot zich op de grond bevindt
+            if (slot.getZ() == 0) {
+                //Hashmap in hashmap steken als key nog leeg is
+                grondSlots.putIfAbsent((int) slot.getCenterY() / 10, new HashMap<>());
+                //Enkel toevoegen als het geen input of output slot is;
+                if (!slot.getType().name().equals("INPUT") && !slot.getType().name().equals("OUTPUT")) {
+                    grondSlots.get((int) slot.getCenterY() / 10).put((int) slot.getCenterX() / 10, slot);
+                }
+            }
+            else {
+                if(geschrankt) {
+                    MakeParentChildLinkGeschrankt(slot);
+                }
+                else {
+                    MakeParentChildLinkNietGeschrankt(slot);
+                }
+            }
+
+            //Wanneer het slot gevuld is in een hashmap steken
+            if (slot.getItem() != null)
+                itemSlotLocation.put(slot.getItem().getId(), slot);
+        }
     }
 }
