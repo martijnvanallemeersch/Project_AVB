@@ -562,7 +562,7 @@ public class Problem {
                 //Hashmap in hashmap steken als key nog leeg is
                 grondSlots.putIfAbsent((int) slot.getCenterY() / 10, new HashMap<>());
                 //Enkel toevoegen als het geen input of output slot is;
-                if (!slot.getType().name().equals("INPUT") && !slot.getType().name().equals("OUTPUT")) {
+                if (slot.getType().equals(Slot.SlotType.STORAGE)) {
                     grondSlots.get((int) slot.getCenterY() / 10).put((int) slot.getCenterX() / 10, slot);
                 }
             }
