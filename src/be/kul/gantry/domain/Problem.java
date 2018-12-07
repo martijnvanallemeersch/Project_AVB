@@ -375,7 +375,7 @@ public class Problem {
         //z == 3 (z begint bij 0)
         //We hebben een slot van niveau drie dus weten dat we 2 grondslotten (niveau 0) hebben dus één Xcoordinaat -5 en één X coordinaat +5
         // De parents rechts van kind 1 of de parent links van kind 2, zijn ouders links en rechts zijn de kinderen van het slot op niveau 3.
-        else
+        else if(slot.getZ() == 3)
         {
             childL = grondSlots.get((int) slot.getCenterY() / 10).get((int) (slot.getCenterX() - 5) / 10);
             //child2 = bottomSlots.get((int) slot.getCenterY() / 10).get((int) (slot.getCenterX() + 5) / 10);
@@ -386,8 +386,70 @@ public class Problem {
             childL = tussen.getParentL();
             childR = tussen.getParentR();
         }
+        else if(slot.getZ() == 4)
+        {
+            Slot tussen = grondSlots.get((int) slot.getCenterY()/10).get((int) (slot.getCenterX())/10);
+            //child2 = bottomSlots.get((int) slot.getCenterY() / 10).get((int) (slot.getCenterX() + 5) / 10);
+            Slot childLTussen = tussen.getParentL();
+            Slot onder = childLTussen.getParentR();
+
+            //childR = tussen.getParentR();
+            //Onderstaande lijn kon ook in vervanging van bovenstaande lijn!!
+            //child = child1.getParentL();
+
+            childL = onder.getParentL();
+            childR = onder.getParentR();
+        }
 
         //Een keer we de child gevonden hebben updaten we de relaties;
+
+        slot.setChildL(childL);
+        slot.setChildR(childR);
+        childL.setParentR(slot);
+        childR.setParentL(slot);
+    }
+
+    public void MakeParentChildLinkGeschranktNew(Slot slot)
+    {
+        Slot tussen = null;
+        Slot childL = null;
+        Slot childR = null;
+
+        if(slot.getZ() == 1)
+        {
+            childL = grondSlots.get((int) slot.getCenterY() / 10).get((int) (slot.getCenterX() - 5) / 10);
+            childR = grondSlots.get((int) slot.getCenterY() / 10).get((int) (slot.getCenterX() + 5) / 10);
+        }
+
+        if((slot.getZ()%2)==0)
+        {
+            // even
+            tussen = grondSlots.get((int) slot.getCenterY()/10).get((int) (slot.getCenterX())/10);
+        }
+        else
+        {
+            // odd
+            tussen = grondSlots.get((int) slot.getCenterY() / 10).get((int) (slot.getCenterX() - 5) / 10);
+        }
+
+
+        for(int i = 2; i<slot.getZ();i++)
+        {
+
+            if((i%2)==0)
+            {
+                tussen = tussen.getParentR();
+            }
+            else {
+                tussen = tussen.getParentL();
+            }
+        }
+
+        if(slot.getZ() != 1)
+        {
+            childL = tussen.getParentL();
+            childR = tussen.getParentR();
+        }
 
         slot.setChildL(childL);
         slot.setChildR(childR);
@@ -568,7 +630,8 @@ public class Problem {
             }
             else {
                 if(geschrankt) {
-                    MakeParentChildLinkGeschrankt(slot);
+
+                    MakeParentChildLinkGeschranktNew(slot);
                 }
                 else {
                     MakeParentChildLinkNietGeschrankt(slot);

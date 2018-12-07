@@ -26,5 +26,9 @@
     <orderEntry type="library" name="guava-23.1-jre" level="project" />
     <orderEntry type="library" name="guava-23.1-jre-javadoc" level="project" />
     <orderEntry type="library" name="json-simple-1.1.1" level="project" />
+    <orderEntry type="library" name="json-simple-1.1.1" level="project" />
+    <orderEntry type="library" name="gson-2.7" level="project" />
+    <orderEntry type="library" name="guava-23.1-jre" level="project" />
+    <orderEntry type="library" name="guava-23.1-jre-javadoc" level="project" />
   </component>
 </module>
