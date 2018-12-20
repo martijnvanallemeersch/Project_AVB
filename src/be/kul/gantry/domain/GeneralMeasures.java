@@ -1,6 +1,8 @@
 package be.kul.gantry.domain;
 import java.util.*;
 
+import static be.kul.gantry.domain.Problem.pickupPlaceDuration;
+
 public class GeneralMeasures {
 
     public enum Richting {
@@ -8,12 +10,12 @@ public class GeneralMeasures {
         NaarAchter
     }
 
-    public static List<ItemMovement> doMoves(double pickupPlaceDuration, Gantry gantry, Slot start , Slot destination){
+    public static List<ItemMovement> doMoves(double startTime, Gantry gantry, Slot start , Slot destination, Item item){
 
-        ItemMovement moveToPickUpPlace = new ItemMovement(0, start.getCenterX(), start.getCenterY(), null,gantry);
-        ItemMovement movePickUp = new ItemMovement(pickupPlaceDuration, gantry.getX(), gantry.getY(), start.getItem().getId(), gantry);
-        ItemMovement moveToDestination = new ItemMovement(0, destination.getCenterX(), destination.getCenterY(), start.getItem().getId(), gantry);
-        ItemMovement moveDropOnDestination = new ItemMovement(pickupPlaceDuration, gantry.getX(), gantry.getY(), null, gantry);
+        ItemMovement moveToPickUpPlace = new ItemMovement(startTime, 0, start.getCenterX(), start.getCenterY(), null,gantry);
+        ItemMovement movePickUp = new ItemMovement(moveToPickUpPlace.getEndTime(), pickupPlaceDuration, gantry.getX(), gantry.getY(), item.getId(), gantry);
+        ItemMovement moveToDestination = new ItemMovement(movePickUp.getEndTime(), 0, destination.getCenterX(), destination.getCenterY(), item.getId(), gantry);
+        ItemMovement moveDropOnDestination = new ItemMovement(moveToDestination.getEndTime(), pickupPlaceDuration, gantry.getX(), gantry.getY(), null, gantry);
 
         //De tijd wordt in ItemMovement zelf berekend
         List<ItemMovement> movements = new ArrayList<>();
@@ -22,12 +24,15 @@ public class GeneralMeasures {
         movements.add(moveToDestination);
         movements.add(moveDropOnDestination);
 
+        //wordt al in itemmovement gedaan
+        //gantry.addAvailableTime(moveToPickUpPlace.getEndTime() + movePickUp.getEndTime() + moveToDestination.getEndTime() + moveDropOnDestination.getEndTime());
 
         return movements;
     }
 
+
     //geef laagste vrije slot weer met als grondvalk par:toCheck dat niet in par:blacklist zit
-    public static Slot zoekLeegSlot(List<Slot> toCheck, Set<Slot> blacklist) throws GeenPlaatsException {
+    public static Slot zoekLeegSlot(List<Slot> toCheck, Set<Slot> blacklist, int boundX) throws GeenPlaatsException {
 
         if(toCheck.size() == 0)
             throw new GeenPlaatsException();
@@ -38,31 +43,32 @@ public class GeneralMeasures {
         int offset = 0;
 
         while(offset < toCheck.size() ) {
-            Slot slot = checkIfEmpty(toCheck.get(offset), niveauHoger, blacklist);
+            Slot slot = checkIfEmpty(toCheck.get(offset), niveauHoger, blacklist, boundX);
             if(slot != null)
                 return slot;
             offset++;
         }
 
         //We hebben geen oplossing gevonden, dus alle parents toevoegen aan lijst en niveau hoger gaan zoeken
-        return zoekLeegSlot(niveauHoger, blacklist);
+        return zoekLeegSlot(niveauHoger, blacklist, boundX);
     }
 
-    private static Slot checkIfEmpty(Slot s, List<Slot> niveauHoger, Set<Slot> blacklist) throws GeenPlaatsException {
+    private static Slot checkIfEmpty(Slot s, List<Slot> niveauHoger, Set<Slot> blacklist, int maxBoundX) throws GeenPlaatsException {
 
-        if(s.getItem() == null) {
+        if(s.getItem() == null && s.getXMax() < maxBoundX) {
             if(blacklist == null || !blacklist.contains(s))
                 return s;
         }
 
-        if(s.getParentL()!=null && !niveauHoger.contains(s.getParentL()))
+        //links zal altijd aan voldoen
+        if(s.getParentL()!=null && !niveauHoger.contains(s.getParentL()) && s.getParentL().getXMax() < maxBoundX)
             niveauHoger.add(s.getParentL());
-        if(s.getParentR()!=null && !niveauHoger.contains(s.getParentR()))
+        if(s.getParentR()!=null && !niveauHoger.contains(s.getParentR()) && s.getParentR().getXMax() < maxBoundX)
             niveauHoger.add(s.getParentR());
         return null;
     }
 
-    public static Slot zoekLeegSlotInBuurt(Slot slot, HashMap<Integer, HashMap<Integer, Slot>> grondSlots, Set<Slot> blacklist) throws GeenPlaatsException {
+    public static Slot zoekLeegSlotInBuurt(Slot slot, HashMap<Integer, HashMap<Integer, Slot>> grondSlots, Set<Slot> blacklist, int maxBoundX) throws GeenPlaatsException {
         Richting richting = Richting.NaarVoor;
 
         //Slot in een zo dicht mogelijke rij zoeken
@@ -91,7 +97,7 @@ public class GeneralMeasures {
             }
 
             //begin bij onderste rij
-            newSlot = zoekLeegSlot(new ArrayList<>(grondSlots.get(locatie).values()), blacklist);
+            newSlot = zoekLeegSlot(new ArrayList<>(grondSlots.get(locatie).values()), blacklist, maxBoundX);
 
             //telkens één slot verder gaan
             offset++;

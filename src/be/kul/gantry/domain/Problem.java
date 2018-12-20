@@ -18,26 +18,24 @@ import java.util.*;
  */
 public class Problem {
 
-    private final int minX, maxX, minY, maxY;
+    public static int minX, maxX, minY, maxY;
     private final int maxLevels;
     private final List<Item> items;
     private final List<Job> inputJobSequence;
     private final List<Job> outputJobSequence;
 
-    private final List<Gantry> gantries;
+    private List<Gantry> gantries;
     private final List<Slot> slots;
-    private final int safetyDistance;
-    private final int pickupPlaceDuration;
-    private HashMap<Integer, HashMap<Integer, Slot>> grondSlots = new HashMap<>();
+    public static int safetyDistance;
+    public static int pickupPlaceDuration;
+    private static HashMap<Integer, HashMap<Integer, Slot>> grondSlots = new HashMap<>();
     private Boolean geschrankt = false;
-
-
-    //We maken een 2D Array aan voor alle bodem slots (z=0)
-    //private Map<Integer, HashMap<Integer, HashMap<Integer, Slot>>> niveaus;
+    private static int gantryNumber = 1;
+    private MovementList itemMovements;
 
 
     //We vullen de array met nieuwe arrays
-    private HashMap<Integer, Slot> itemSlotLocation = new HashMap<>();
+    public static HashMap<Integer, Slot> itemSlotLocation = new HashMap<>();
 
     public enum Operatie {
         VerplaatsIntern,
@@ -46,10 +44,10 @@ public class Problem {
     }
 
     public Problem(int minX, int maxX, int minY, int maxY, int maxLevels, List<Item> items, List<Job> inputJobSequence, List<Job> outputJobSequence, List<Gantry> gantries, List<Slot> slots, int safetyDistance, int pickupPlaceDuration,boolean geschrankt) {
-        this.minX = minX;
-        this.maxX = maxX;
-        this.minY = minY;
-        this.maxY = maxY;
+        Problem.minX = minX;
+        Problem.maxX = maxX;
+        Problem.minY = minY;
+        Problem.maxY = maxY;
         this.maxLevels = maxLevels;
         this.items = items;
         this.inputJobSequence = inputJobSequence;
@@ -60,11 +58,11 @@ public class Problem {
         this.pickupPlaceDuration = pickupPlaceDuration;
         this.geschrankt = geschrankt;
 
-        //niveaus = new HashMap<>();
+        if(gantries.size() != 2)
+            gantries.add(null);
 
-//        for(int i = 0; i<4; i++){
-//            niveaus.put(i, new HashMap<Integer, HashMap<Integer, Slot>>());
-//        }
+        itemMovements = new MovementList(gantries);
+
     }
 
     public int getMinX() {
@@ -308,10 +306,10 @@ public class Problem {
             }
 
             boolean geschranktIn = false;
-            if(file.getName().contains("TRUE"))
-            {
+            if(file.getName().contains("TRUE")) {
                 geschranktIn = true;
             }
+            gantryNumber = file.getName().charAt(0) - 48;
 
 
             return new Problem(
@@ -459,11 +457,10 @@ public class Problem {
 
     // Eerst proberen we outputjobs uit te voeren tot deze bepaalde items nodig heeft die nog niet in het veld staan,
     // dan schakelen we over op inputjobs tot dat item voor de outputjob gevonden is
-    public List<ItemMovement> werkUit() throws GeenPlaatsException {
+    public MovementList werkUit() throws GeenPlaatsException {
 
         buildTree();
 
-        List<ItemMovement> itemMovements = new ArrayList<>();
         int inputJobCounter = 0;
         int outputJobCounter = 0;
 
@@ -478,19 +475,17 @@ public class Problem {
             if(slot != null) {
                 //generate blacklist (niet zo efficient)
                 Set<Slot> blacklist = null;
-                if(geschrankt)
+                if (geschrankt)
                     blacklist = generateBlacklist(slot);
 
-                //Als het item dat we nodig hebben containers op hem heeft staan eerste deze uitgraven en nieuwe plaats geven
-                if(slot.getParentL() != null && slot.getParentL().getItem() != null)
-                    itemMovements.addAll(uitGraven(slot.getParentL(), gantries.get(0), blacklist));
+                List<DummyMovement> list = uitGravenBasisSlot(slot, blacklist, outputJob);
+                itemMovements.addAll(list);
 
-                if(slot.getParentR() != null && slot.getParentR().getItem() != null)
-                    itemMovements.addAll(uitGraven(slot.getParentR(), gantries.get(0), blacklist));
+                /*//verplaatsen van item dat naar output moet, sws door kraan 2 als meerdere kranen zijn
+                int kraan = gantryNumber == 1? 0:1;
+                itemMovements.add(new DummyMovement(slot, outputJob.getPlace().getSlot(), gantries.get(kraan), new HashSet<>(list), null, null, Operatie.VerplaatsIntern));
+                update(Operatie.VerplaatsNaarOutput, outputJob.getPlace().getSlot(),slot);*/
 
-                //De verplaatsingen nodig om de outputjob te vervolledigen en alle sloten updaten met hun huidige items
-                itemMovements.addAll(GeneralMeasures.doMoves(pickupPlaceDuration, gantries.get(0), slot, outputJob.getPlace().getSlot()));
-                update(Operatie.VerplaatsNaarOutput, outputJob.getPlace().getSlot(),slot);
             }
             else {
                 //een nieuw inputjob doen tot het item gevonden is, als gevonden is => direct naar output
@@ -501,10 +496,29 @@ public class Problem {
                         arrangeInputJob(inputJob, itemMovements);
                     } else {
                         slot = inputJob.getPickup().getSlot();
-                        Slot outputSlot = outputJob.getPlace().getSlot();
-                        itemMovements.addAll(GeneralMeasures.doMoves(pickupPlaceDuration,gantries.get(0), slot, outputSlot));
-                        update(Operatie.VerplaatsNaarBinnen, outputSlot, slot);
 
+                        //als 2 kranen + direct van Input naar Output => op tussentijds leeg slot zetten om van kraan te wisselen
+                        Slot tussenSlot;
+                        int kraan = 0;
+                        DummyMovement dummy = null;
+                        if(gantryNumber == 2) {
+                            tussenSlot = GeneralMeasures.zoekLeegSlot(getGrondSloten(), null, maxX - safetyDistance);
+                            inputJob.getPickup().getSlot().setItem(inputJob.getItem());
+                            dummy = new DummyMovement(slot, tussenSlot, item, gantries.get(0), null, null, null, Operatie.VerplaatsNaarBinnen);
+                            itemMovements.add(dummy);
+                            update(Operatie.VerplaatsNaarBinnen, tussenSlot, slot);
+                            slot = tussenSlot;
+                            kraan = 1;
+                        }
+
+                        HashSet<DummyMovement> s = null;
+                        if(dummy != null) {
+                            s = new HashSet<>();
+                            s.add(dummy);
+                        }
+                        Slot outputSlot = outputJob.getPlace().getSlot();
+                        itemMovements.add(new DummyMovement(slot, outputSlot, item, gantries.get(kraan), s, null, null, Operatie.VerplaatsNaarOutput));
+                        update(Operatie.VerplaatsNaarOutput, outputSlot, slot);
                     }
 
                     inputJobCounter++;
@@ -551,69 +565,94 @@ public class Problem {
     }
 
     //inputjob uitvoeren
-    private void arrangeInputJob(Job inputJob, List<ItemMovement> itemMovements) throws GeenPlaatsException {
+    private void arrangeInputJob(Job inputJob, MovementList itemMovements) throws GeenPlaatsException {
 
-        //voeg alle grondslots uit om van te vertrekken om lege plaats te zoeken
-        List<Slot> tmp = new ArrayList<>();
-        for(HashMap<Integer, Slot> t: grondSlots.values())
-            tmp.addAll(t.values());
-        Slot destination = GeneralMeasures.zoekLeegSlot(tmp, null);
+        Slot destination = GeneralMeasures.zoekLeegSlot(getGrondSloten(), null, maxX);
 
         //De verplaatsingen nodig om de outputjob te vervolledigen en alle sloten updaten met hun huidige items
         inputJob.getPickup().getSlot().setItem(inputJob.getItem());
-        itemMovements.addAll(GeneralMeasures.doMoves(pickupPlaceDuration,gantries.get(0),inputJob.getPickup().getSlot(), destination));
-        update(Operatie.VerplaatsNaarBinnen, destination,inputJob.getPickup().getSlot());
+
+        itemMovements.add(new DummyMovement(inputJob.getPickup().getSlot(), destination, inputJob.getItem(), gantries.get(0), null, gantries.get(0), gantries.get(1), Operatie.VerplaatsNaarBinnen));
+        update(Operatie.VerplaatsNaarBinnen, destination, inputJob.getPickup().getSlot());
     }
 
-    private void update(Operatie operatie, Slot destination, Slot startSlot){
-        switch (operatie) {
-            case VerplaatsIntern:
-                destination.setItem(startSlot.getItem());
-                itemSlotLocation.put(destination.getItem().getId(), destination);
-                break;
-            case VerplaatsNaarBinnen:
-                destination.setItem(startSlot.getItem());
-                itemSlotLocation.put(destination.getItem().getId(), destination);
-                break;
-            case VerplaatsNaarOutput:
-                itemSlotLocation.remove(startSlot.getItem().getId());
-                break;
-        }
+    //Deze functie graaft een bepaald slot dat we nodig hebben uit en verplaatst al de bovenliggende sloten.
+    //gesplits in uitgravenBasisSlot en uitgraven zodat aan onderste uit te graven item de 2e kraan kan toekennen
+    private List<DummyMovement> uitGravenBasisSlot(Slot slot, Set<Slot> blackList, Job outputJob) throws GeenPlaatsException {
 
-        startSlot.setItem(null);
-    }
-
-
-   //Deze functie graaft een bepaald slot dat we nodig hebben uit en verplaatst al de bovenliggende sloten.
-   private List<ItemMovement> uitGraven(Slot slot, Gantry gantry, Set<Slot> blackList) throws GeenPlaatsException {
-
-        List<ItemMovement> itemMovements = new ArrayList<>();
+        List<DummyMovement> itemMovements = new ArrayList<>();
 
         //Recursief naar boven gaan, doordat we namelijk eerste de gevulde parents van een bepaald slot moeten uithalen
         // parent Links
         if(slot.getParentL() != null ){
             if( slot.getParentL().getItem() != null) {
-                List<ItemMovement> tussen =  uitGraven(slot.getParentL(), gantry, blackList);
-                itemMovements.addAll(tussen);
+                itemMovements.addAll(uitgraven(slot.getParentL(), blackList));
             }
         }
 
         // parent Rechts
         if(slot.getParentR() != null ){
             if(slot.getParentR().getItem() != null) {
-                List<ItemMovement> tussen =  uitGraven(slot.getParentR(), gantry, blackList);
-                itemMovements.addAll(tussen);
+                itemMovements.addAll(uitgraven(slot.getParentR(), blackList));
             }
         }
 
         //Slot in een zo dicht mogelijke rij zoeken
-        Slot newSlot = GeneralMeasures.zoekLeegSlotInBuurt(slot, grondSlots, blackList);
+        //Slot newSlot = GeneralMeasures.zoekLeegSlotInBuurt(slot, grondSlots, blackList, maxX - safetyDistance);
 
-        //verplaatsen
-        itemMovements.addAll(GeneralMeasures.doMoves(pickupPlaceDuration,gantry, slot, newSlot));
+        //verplaatsen van item dat naar output moet, sws door kraan 2 als meerdere kranen zijn
+        int kraan = gantryNumber == 1? 0:1;
+        itemMovements.add(new DummyMovement(slot, outputJob.getPlace().getSlot(), slot.getItem(), gantries.get(kraan), new HashSet<>(itemMovements), null, null, Operatie.VerplaatsIntern));
+        update(Operatie.VerplaatsNaarOutput, outputJob.getPlace().getSlot(),slot);
+        return itemMovements;
+    }
+
+    //item op slot moet naar een lege plaats
+    private List<DummyMovement> uitgraven(Slot slot, Set<Slot> blackList) throws GeenPlaatsException {
+        List<DummyMovement> itemMovements = new ArrayList<>();
+
+        //Recursief naar boven gaan, doordat we namelijk eerste de gevulde parents van een bepaald slot moeten uithalen
+        // parent Links
+        if(slot.getParentL() != null ){
+            if( slot.getParentL().getItem() != null) {
+                itemMovements.addAll(uitgraven(slot.getParentL(), blackList));
+            }
+        }
+
+        // parent Rechts
+        if(slot.getParentR() != null ){
+            if(slot.getParentR().getItem() != null) {
+                itemMovements.addAll(uitgraven(slot.getParentR(), blackList));
+            }
+        }
+
+        //Slot in een zo dicht mogelijke rij zoeken
+        Slot newSlot = GeneralMeasures.zoekLeegSlotInBuurt(slot, grondSlots, blackList, maxX - safetyDistance);
+
+        itemMovements.add(new DummyMovement(slot, newSlot, slot.getItem(), null, new HashSet<>(itemMovements), gantries.get(0), gantries.get(1), Operatie.VerplaatsIntern));
         update(Operatie.VerplaatsIntern, newSlot, slot);
 
         return itemMovements;
+    }
+
+    private Set<Slot> generateMovesSet(Slot slot, Set<Slot> niveau, List<Set<Slot>> lagen){
+
+        Slot parentR = slot.getParentR();
+        Slot parentL = slot.getParentL();
+
+        if(parentL != null && parentL.getItem() != null)
+            niveau.add(parentL);
+
+        if(parentR != null && parentR.getItem() != null)
+            niveau.add(parentR);
+
+        Set<Slot> laag = new HashSet<>();
+        for(Slot s: niveau) {
+            lagen.add(generateMovesSet(s, laag, lagen));
+        }
+
+        return laag;
+
     }
 
     private void buildTree(){
@@ -643,4 +682,31 @@ public class Problem {
                 itemSlotLocation.put(slot.getItem().getId(), slot);
         }
     }
+
+    public static List<Slot> getGrondSloten(){
+        //voeg alle grondslots uit om van te vertrekken om lege plaats te zoeken
+        List<Slot> tmp = new ArrayList<>();
+        for(HashMap<Integer, Slot> t: grondSlots.values())
+            tmp.addAll(t.values());
+        return tmp;
+    }
+
+    public void update(Problem.Operatie operatie, Slot destination, Slot startSlot){
+        switch (operatie) {
+            case VerplaatsIntern:
+                destination.setItem(startSlot.getItem());
+                itemSlotLocation.put(destination.getItem().getId(), destination);
+                break;
+            case VerplaatsNaarBinnen:
+                destination.setItem(startSlot.getItem());
+                itemSlotLocation.put(destination.getItem().getId(), destination);
+                break;
+            case VerplaatsNaarOutput:
+                itemSlotLocation.remove(startSlot.getItem().getId());
+                break;
+        }
+
+        startSlot.setItem(null);
+    }
+
 }
