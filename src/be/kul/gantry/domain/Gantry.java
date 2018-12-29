@@ -1,5 +1,8 @@
 package be.kul.gantry.domain;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * Created by Wim on 27/04/2015.
  */
@@ -9,6 +12,8 @@ public class Gantry {
     private final int xMin,xMax;
     private final int startX,startY;
     private final double xSpeed,ySpeed;
+
+    private List<ItemMovement> movements = new ArrayList<>();
 
     private int x,y;
     private double time;
@@ -25,6 +30,8 @@ public class Gantry {
         this.startY = startY;
         this.xSpeed = xSpeed;
         this.ySpeed = ySpeed;
+        this.x = startX;
+        this.y = startY;
     }
 
     public int getId() {
@@ -98,5 +105,17 @@ public class Gantry {
 
     public boolean canReachSlot(Slot s) {
         return xMin <= s.getCenterX() && s.getCenterX() <= xMax;
+    }
+
+    public List<ItemMovement> getMovements() {
+        return movements;
+    }
+
+    public void addMovement(ItemMovement itemMovement){
+        movements.add(itemMovement);
+    }
+
+    public int getKant(){
+        return id == 0? xMin:xMax;
     }
 }

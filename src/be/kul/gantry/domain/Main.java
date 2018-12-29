@@ -5,13 +5,13 @@ import java.io.FileOutputStream;
 import java.io.OutputStreamWriter;
 
 public class Main {
-    private static String inputfile = "";
-    private static String outputfile = "";
+    private static String inputfile = "2_10_100_5_TRUE_65_65_100.json";
+    private static String outputfile = "output.csv";
 
     public static void main(String[] args){
         try{
-            inputfile = args[0].toString();
-            outputfile = args[1].toString();
+           /* inputfile = args[0].toString();
+            outputfile = args[1].toString();*/
             Problem problem = Problem.fromJson(new File(inputfile));
             WriteToFile(problem);
 
