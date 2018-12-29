@@ -10,8 +10,10 @@ public class Main {
 
     public static void main(String[] args){
         try{
-           /* inputfile = args[0].toString();
-            outputfile = args[1].toString();*/
+            if(args.length != 0) {
+                inputfile = args[0];
+                outputfile = args[1];
+            }
             Problem problem = Problem.fromJson(new File(inputfile));
             WriteToFile(problem);
 
