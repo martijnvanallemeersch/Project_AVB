@@ -161,10 +161,10 @@ public class GeneralMeasures {
         }
 
         //links zal altijd aan voldoen
-        if(s.getParentL()!=null && !niveauHoger.contains(s.getParentL()) && s.getParentL().getXMax() < maxBoundX)
-            niveauHoger.add(s.getParentL());
-        if(s.getParentR()!=null && !niveauHoger.contains(s.getParentR()) && s.getParentR().getXMax() < maxBoundX)
-            niveauHoger.add(s.getParentR());
+        if(s.getParents().get(0)!=null && !niveauHoger.contains(s.getParents().get(0)) && s.getParents().get(0).getXMax() < maxBoundX)
+            niveauHoger.add(s.getParents().get(0));
+        if(s.getParents().get(1)!=null && !niveauHoger.contains(s.getParents().get(1)) && s.getParents().get(1).getXMax() < maxBoundX)
+            niveauHoger.add(s.getParents().get(1));
         return null;
     }
 

@@ -11,10 +11,10 @@ public class Slot {
     private final int centerX, centerY, xMin, xMax, yMin, yMax, z;
     private Item item;
     private final SlotType type;
-    private Slot parentL;
-    private Slot parentR;
-    private Slot childL;
-    private Slot childR;
+    private ArrayList<Slot> parents = new ArrayList<>();
+    //private Slot parentR;
+    private ArrayList<Slot> childs = new ArrayList<>();
+    //private Slot childR;
 
 
     public Slot(int id, int centerX, int centerY, int xMin, int xMax, int yMin, int yMax, int z, SlotType type, Item item) {
@@ -28,6 +28,10 @@ public class Slot {
         this.z = z;
         this.item = item;
         this.type = type;
+        parents.add(null);
+        parents.add(null);
+        childs.add(null);
+        childs.add(null);
     }
 
     public int getId() {
@@ -80,37 +84,65 @@ public class Slot {
 
     public boolean isStorageSlot() { return type == SlotType.STORAGE; }
 
-    public Slot getParentL() {
-        return parentL;
+    public void addChildL(Slot child){
+        childs.remove(0);
+        childs.add(0,child);
     }
 
-    public Slot getParentR() {
-        return parentR;
+    public void addChildR(Slot child){
+        childs.remove(1);
+        childs.add(1,child);
     }
 
-    public void setParentL(Slot parentL) {
-        this.parentL = parentL;
+    public void addParentL(Slot parent){
+        parents.remove(0);
+        parents.add(0, parent);
     }
 
-    public void setParentR(Slot parentR) {
-        this.parentR = parentR;
+    public void addParentR(Slot parent){
+        parents.remove(1);
+        parents.add(1, parent);
     }
 
-    public Slot getChildL() {
-        return childL;
+    public ArrayList<Slot> getParents() {
+        return parents;
     }
 
-    public Slot getChildR() {
-        return childR;
+    public ArrayList<Slot> getChildren() {
+        return childs;
     }
 
-    public void setChildL(Slot childL) {
-        this.childL = childL;
-    }
+//    public Slot getParentL() {
+//        return parentL;
+//    }
 
-    public void setChildR(Slot childR) {
-        this.childR = childR;
-    }
+//    public Slot getParentR() {
+//        return parentR;
+//    }
+//
+//    public void setParentL(Slot parentL) {
+//        this.parentL = parentL;
+//    }
+//
+//    public void setParentR(Slot parentR) {
+//        this.parentR = parentR;
+//    }
+//
+//    public Slot getChildL() {
+//        return childL;
+//    }
+//
+//    public Slot getChildR() {
+//        return childR;
+//    }
+//
+//    public void setChildL(Slot childL) {
+//        this.childL = childL;
+//    }
+//
+//    public void setChildR(Slot childR) {
+//        this.childR = childR;
+//    }
 
     @Override
     public String toString() {

@@ -342,13 +342,13 @@ public class Problem {
         Slot child = grondSlots.get(slot.getCenterY() / 10).get(slot.getCenterX() / 10);
 
         // we stijgen telkens tot op de hoogste z
-        while(child.getParentL() != null) {
-            child = child.getParentL();
+        while(child.getParents().get(0) != null) {
+            child = child.getParents().get(0);
         }
 
         //Als we de child gevonden hebben zetten we de link
-        child.setParentL(slot);
-        slot.setChildL(child);
+        child.addParentL(slot);
+        slot.addChildL(child);
     }
 
     // hier wordt de parent child link gemaakt dus alle grondsloten met hun ouders dus setparent en setchild van ieder slot
@@ -374,8 +374,8 @@ public class Problem {
         else if(slot.getZ() == 2)
         {
             Slot tussen = grondSlots.get((int) slot.getCenterY()/10).get((int) (slot.getCenterX())/10);
-            childL = tussen.getParentL();
-            childR = tussen.getParentR();
+            childL = tussen.getParents().get(0);
+            childR = tussen.getParents().get(1);
         }
 
         //z == 3 (z begint bij 0)
@@ -385,34 +385,34 @@ public class Problem {
         {
             childL = grondSlots.get((int) slot.getCenterY() / 10).get((int) (slot.getCenterX() - 5) / 10);
             //child2 = bottomSlots.get((int) slot.getCenterY() / 10).get((int) (slot.getCenterX() + 5) / 10);
-            Slot tussen = childL.getParentR();
+            Slot tussen = childL.getParents().get(1);
             //Onderstaande lijn kon ook in vervanging van bovenstaande lijn!!
             //child = child1.getParentL();
 
-            childL = tussen.getParentL();
-            childR = tussen.getParentR();
+            childL = tussen.getParents().get(0);
+            childR = tussen.getParents().get(1);
         }
         else if(slot.getZ() == 4)
         {
             Slot tussen = grondSlots.get((int) slot.getCenterY()/10).get((int) (slot.getCenterX())/10);
             //child2 = bottomSlots.get((int) slot.getCenterY() / 10).get((int) (slot.getCenterX() + 5) / 10);
-            Slot childLTussen = tussen.getParentL();
-            Slot onder = childLTussen.getParentR();
+            Slot childLTussen = tussen.getParents().get(0);
+            Slot onder = childLTussen.getParents().get(1);
 
             //childR = tussen.getParentR();
             //Onderstaande lijn kon ook in vervanging van bovenstaande lijn!!
             //child = child1.getParentL();
 
-            childL = onder.getParentL();
-            childR = onder.getParentR();
+            childL = onder.getParents().get(0);
+            childR = onder.getParents().get(1);
         }
 
         //Een keer we de child gevonden hebben updaten we de relaties;
 
-        slot.setChildL(childL);
-        slot.setChildR(childR);
-        childL.setParentR(slot);
-        childR.setParentL(slot);
+        slot.addChildL(childL);
+        slot.addChildR(childR);
+        childL.addParentR(slot);
+        childR.addParentL(slot);
     }
 
     public void MakeParentChildLinkGeschranktNew(Slot slot)
@@ -444,23 +444,23 @@ public class Problem {
 
             if((i%2)==0)
             {
-                tussen = tussen.getParentR();
+                tussen = tussen.getParents().get(1);;
             }
             else {
-                tussen = tussen.getParentL();
+                tussen = tussen.getParents().get(0);;
             }
         }
 
         if(slot.getZ() != 1)
         {
-            childL = tussen.getParentL();
-            childR = tussen.getParentR();
+            childL = tussen.getParents().get(0);;
+            childR = tussen.getParents().get(1);;
         }
 
-        slot.setChildL(childL);
-        slot.setChildR(childR);
-        childL.setParentR(slot);
-        childR.setParentL(slot);
+        slot.addChildL(childL);
+        slot.addChildR(childR);
+        childL.addParentR(slot);
+        childR.addParentL(slot);
     }
 
     // Eerst proberen we outputjobs uit te voeren tot deze bepaalde items nodig heeft die nog niet in het veld staan,
@@ -497,11 +497,11 @@ public class Problem {
                     blacklist = generateBlacklist(slot);
 
                 //Als het item dat we nodig hebben containers op hem heeft staan eerste deze uitgraven en nieuwe plaats geven
-                if(slot.getParentL() != null && slot.getParentL().getItem() != null)
-                    itemMovements.addAll(uitGraven(slot.getParentL(), kraan, blacklist));
+                if(slot.getParents().get(0) != null && slot.getParents().get(0).getItem() != null)
+                    itemMovements.addAll(uitGraven(slot.getParents().get(0), kraan, blacklist));
 
-                if(slot.getParentR() != null && slot.getParentR().getItem() != null)
-                    itemMovements.addAll(uitGraven(slot.getParentR(), kraan, blacklist));
+                if(slot.getParents().get(1) != null && slot.getParents().get(1).getItem() != null)
+                    itemMovements.addAll(uitGraven(slot.getParents().get(1), kraan, blacklist));
 
                 //De verplaatsingen nodig om de outputjob te vervolledigen en alle sloten updaten met hun huidige items
                 itemMovements.addAll(GeneralMeasures.doMoves(time, pickupPlaceDuration, kraan, slot, outputJob.getPlace().getSlot(), Operatie.VerplaatsNaarOutput));
@@ -596,17 +596,17 @@ public class Problem {
 
         //Recursief naar boven gaan, doordat we namelijk eerste de gevulde parents van een bepaald slot moeten uithalen
         // parent Links
-        if(slot.getParentL() != null ){
-            if( slot.getParentL().getItem() != null) {
-                List<ItemMovement> tussen =  uitGraven(slot.getParentL(), gantry, blackList);
+        if(slot.getParents().get(0) != null ){
+            if( slot.getParents().get(0).getItem() != null) {
+                List<ItemMovement> tussen =  uitGraven(slot.getParents().get(0), gantry, blackList);
                 itemMovements.addAll(tussen);
             }
         }
 
         // parent Rechts
-        if(slot.getParentR() != null ){
-            if(slot.getParentR().getItem() != null) {
-                List<ItemMovement> tussen =  uitGraven(slot.getParentR(), gantry, blackList);
+        if(slot.getParents().get(1) != null ){
+            if(slot.getParents().get(1).getItem() != null) {
+                List<ItemMovement> tussen =  uitGraven(slot.getParents().get(1), gantry, blackList);
                 itemMovements.addAll(tussen);
             }
         }
@@ -632,12 +632,12 @@ public class Problem {
     private Set<Slot> generateBlacklist(Slot slot){
         Set<Slot> sloten = new HashSet<>();
 
-        Slot links = slot.getParentL();
+        Slot links = slot.getParents().get(0);
         if(links != null){
             sloten.addAll(generateBlacklist(links));
         }
 
-        Slot rechts = slot.getParentR();
+        Slot rechts = slot.getParents().get(1);
         if(rechts != null){
             sloten.addAll(generateBlacklist(rechts));
         }
