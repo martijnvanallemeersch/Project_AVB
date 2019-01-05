@@ -39,7 +39,6 @@ public class GeneralMeasures {
 
 
                 //als wel botst => als andere kraan stil staat -> doorgeven
-                //TODO als niet stil staat => wachten + zorgen dat wel aan slot kan!!!
                 //zorgen dat niet zelfde slot pakt
                 Operatie operatie1;
                 Operatie operatie2;

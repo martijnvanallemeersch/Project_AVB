@@ -490,7 +490,7 @@ public class Problem {
         }
 
         List<Slot> tmp = getGrondSloten();
-        Slot destination = GeneralMeasures.zoekLeegSlot(tmp, null, maxX - safetyDistance+minX); // TODO maxX - safetyDistance
+        Slot destination = GeneralMeasures.zoekLeegSlot(tmp, null, maxX - safetyDistance+minX);
 
         //De verplaatsingen nodig om de outputjob te vervolledigen en alle sloten updaten met hun huidige items
         inputJob.getPickup().getSlot().setItem(inputJob.getItem());
