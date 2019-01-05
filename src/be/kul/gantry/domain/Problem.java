@@ -351,71 +351,7 @@ public class Problem {
         slot.addChildL(child);
     }
 
-    // hier wordt de parent child link gemaakt dus alle grondsloten met hun ouders dus setparent en setchild van ieder slot
-    private void MakeParentChildLinkGeschrankt(Slot slot) {
-
-        Slot childL = null;
-        Slot childR = null;
-
-        //We hebben een slot op niveau 1 dus de kinderen gewoon zoeken door X-5 & X+5 te doen!
-        if(slot.getZ() == 1)
-        {
-            childL = grondSlots.get((int) slot.getCenterY() / 10).get((int) (slot.getCenterX() - 5) / 10);
-            childR = grondSlots.get((int) slot.getCenterY() / 10).get((int) (slot.getCenterX() + 5) / 10);
-        }
-
-                //        niveau 3
-              //  //      niveau 2
-           //   //   //   niveau 1
-        //   //   //   // niveau 0
-
-        //We hebben een slot van niveau twee dus weten dat het grondslot (niveau 0) op dezelfde X coordinaat ligt zie tekening hierboven.
-        // De parents links en rechts van het grondslot zijn dus de kinderen van het slot op niveau 2
-        else if(slot.getZ() == 2)
-        {
-            Slot tussen = grondSlots.get((int) slot.getCenterY()/10).get((int) (slot.getCenterX())/10);
-            childL = tussen.getParents().get(0);
-            childR = tussen.getParents().get(1);
-        }
-
-        //z == 3 (z begint bij 0)
-        //We hebben een slot van niveau drie dus weten dat we 2 grondslotten (niveau 0) hebben dus één Xcoordinaat -5 en één X coordinaat +5
-        // De parents rechts van kind 1 of de parent links van kind 2, zijn ouders links en rechts zijn de kinderen van het slot op niveau 3.
-        else if(slot.getZ() == 3)
-        {
-            childL = grondSlots.get((int) slot.getCenterY() / 10).get((int) (slot.getCenterX() - 5) / 10);
-            //child2 = bottomSlots.get((int) slot.getCenterY() / 10).get((int) (slot.getCenterX() + 5) / 10);
-            Slot tussen = childL.getParents().get(1);
-            //Onderstaande lijn kon ook in vervanging van bovenstaande lijn!!
-            //child = child1.getParentL();
-
-            childL = tussen.getParents().get(0);
-            childR = tussen.getParents().get(1);
-        }
-        else if(slot.getZ() == 4)
-        {
-            Slot tussen = grondSlots.get((int) slot.getCenterY()/10).get((int) (slot.getCenterX())/10);
-            //child2 = bottomSlots.get((int) slot.getCenterY() / 10).get((int) (slot.getCenterX() + 5) / 10);
-            Slot childLTussen = tussen.getParents().get(0);
-            Slot onder = childLTussen.getParents().get(1);
-
-            //childR = tussen.getParentR();
-            //Onderstaande lijn kon ook in vervanging van bovenstaande lijn!!
-            //child = child1.getParentL();
-
-            childL = onder.getParents().get(0);
-            childR = onder.getParents().get(1);
-        }
-
-        //Een keer we de child gevonden hebben updaten we de relaties;
-
-        slot.addChildL(childL);
-        slot.addChildR(childR);
-        childL.addParentR(slot);
-        childR.addParentL(slot);
-    }
-
-    public void MakeParentChildLinkGeschranktNew(Slot slot)
+    public void MakeParentChildLinkGeschrankt(Slot slot)
     {
         Slot tussen = null;
         Slot childL = null;
@@ -518,33 +454,6 @@ public class Problem {
                         Slot outputSlot = outputJob.getPlace().getSlot();
                         inputJob.getPickup().getSlot().setItem(inputJob.getItem());
                         itemMovements.addAll(GeneralMeasures.doMoves(time, pickupPlaceDuration,gantries.get(0), slot, outputSlot, Operatie.VerplaatsNaarOutput));
-
-                        /*//if 2 kranen => doorgeven
-                        int indexx = gantries.size() == 2? 1:0;
-                        Slot tussenSlot;
-                        int kraann = 0;
-                        if(indexx == 1) {
-                            //verzet 2e kraan
-                            itemMovements.add(new ItemMovement(time, 0, gantries.get(1).getX(), gantries.get(1).getY(), maxX, gantries.get(1).getY(), null, gantries.get(1), false));
-                            updateTime();
-                            tussenSlot = GeneralMeasures.zoekLeegSlot(getGrondSloten(), null, maxX - safetyDistance);
-                            inputJob.getPickup().getSlot().setItem(inputJob.getItem());
-                            itemMovements.addAll(GeneralMeasures.doMoves(time, pickupPlaceDuration,gantries.get(kraann), slot, tussenSlot));
-                            updateTime();
-                            update(Operatie.VerplaatsNaarBinnen, tussenSlot, slot);
-                            slot = tussenSlot;
-                            kraann = 1;
-                            //zet kraan 0 aan de kant
-                            itemMovements.add(new ItemMovement(time, 0, gantries.get(0).getX(), gantries.get(0).getY(),0, gantries.get(0).getY(), null, gantries.get(0), false));
-                            updateTime();
-
-                        }
-
-                        Slot outputSlot = outputJob.getPlace().getSlot();
-                        itemMovements.addAll(GeneralMeasures.doMoves(time, pickupPlaceDuration,gantries.get(kraann), slot, outputSlot));
-                        updateTime();
-                        update(Operatie.VerplaatsNaarBinnen, outputSlot, slot);*/
-
                     }
 
                     inputJobCounter++;
@@ -663,7 +572,7 @@ public class Problem {
             else {
                 if(geschrankt) {
 
-                    MakeParentChildLinkGeschranktNew(slot);
+                    MakeParentChildLinkGeschrankt(slot);
                 }
                 else {
                     MakeParentChildLinkNietGeschrankt(slot);

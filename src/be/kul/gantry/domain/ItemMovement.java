@@ -48,20 +48,6 @@ public class ItemMovement {
             this.endTime = endTime;
 
 
-            /*if(!gantry.getMovements().isEmpty()) {
-                ItemMovement lastMove = gantry.getMovements().get(gantry.getMovements().size()-1);
-
-                double endT = lastMove.getEndTime();
-                if (endT != startTijd) {
-                    ItemMovement it = new ItemMovement(endT, 0, lastMove.getX_destination(), lastMove.getY_destination(), lastMove.getX_destination(), lastMove.getY_destination(), null, gantry);
-                    it.setEndTime(startTime);
-                    itemMovements.add(it);
-                    //gantry.addMovement(it);
-
-                }
-
-            }*/
-
             gantry.setTime(endTime);
             gantry.setX(x_destination);
             gantry.setY(y_destination);
